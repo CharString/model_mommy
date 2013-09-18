@@ -154,8 +154,7 @@ If you have fields with special validation, you should set their values by yours
 *Model-mommy* should handle fields that:
 
 1. don't matter for the test you're writing;
-2. don't require special validation (like unique, etc);
-3. are required to create the object.
+2. are required to create the object.
 
 
 Currently supported fields
@@ -170,17 +169,17 @@ Currently supported fields
 Custom fields
 -------------
 
-Model-mommy allows you to define generators methods for your custom fields or overrides its default generators. This could be achieved by specifing a dict on settings that its keys are the field paths and the values their generators functions, as the example bellow:
+Model-mommy allows you to specify your own value generators. You can use this to
+
+ * provide support for your custom fields
+ * override the default generators, on fields that require special validation
 
 .. code-block:: python
 
-    # on your settings.py file:
     def gen_func():
         return 'value'
 
-    MOMMY_CUSTOM_FIELDS_GEN = {
-        'test.generic.fields.CustomField': gen_func,
-    }
+    mommy.add_value_generator(gen_func, CustomField)
 
 
 Recipes
