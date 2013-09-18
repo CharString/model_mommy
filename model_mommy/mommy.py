@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import warnings
 
-from django.conf import settings
+from collections import defaultdict
 from django.utils import importlib
 from django.contrib.contenttypes import generic
 from django.contrib.contenttypes.models import ContentType
@@ -23,6 +23,7 @@ except ImportError:
 
 import generators
 from exceptions import ModelNotFound, AmbiguousModelName, InvalidQuantityException
+
 
 from six import string_types
 
@@ -143,6 +144,7 @@ default_mapping = {
     ContentType: generators.gen_content_type,
 }
 
+custom_mapping = defaultdict(dict)
 
 class ModelFinder(object):
     '''
@@ -229,11 +231,8 @@ class Mommy(object):
 
     def init_type_mapping(self):
         self.type_mapping = default_mapping.copy()
-        generator_from_settings = getattr(settings, 'MOMMY_CUSTOM_FIELDS_GEN', {})
-        for k, v in generator_from_settings.items():
-            path, field_name = k.rsplit('.', 1)
-            field_class = getattr(importlib.import_module(path), field_name)
-            self.type_mapping[field_class] = v
+        self.type_mapping.update(custom_mapping[None])
+        self.type_mapping.update(custom_mapping[self.model])
 
     def make(self, **attrs):
         '''Creates and persists an instance of the model
@@ -418,3 +417,11 @@ def make_many_from_recipe(mommy_recipe_name, quantity=None, **new_attrs):
     warnings.warn(msg, DeprecationWarning)
     quantity = quantity or MAX_MANY_QUANTITY
     return [make_recipe(mommy_recipe_name, **new_attrs) for x in range(quantity)]
+
+
+def add_value_generator(generator, field, model=None):
+    custom_mapping[model][field] = generator
+
+
+def clear_value_generators():
+    custom_mapping.clear()

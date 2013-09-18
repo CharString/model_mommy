@@ -4,8 +4,8 @@ from os.path import abspath
 from tempfile import gettempdir
 
 from django.test import TestCase
-from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
+from django.db import models
 from django.db.models.fields import CharField, TextField, SlugField
 from django.db.models.fields import DateField, DateTimeField,TimeField, EmailField
 from django.db.models.fields import IntegerField, SmallIntegerField
@@ -34,7 +34,10 @@ from test.generic.models import DummyDecimalModel, DummyEmailModel
 from test.generic.models import DummyGenericForeignKeyModel
 from test.generic.models import DummyFileFieldModel
 from test.generic.models import DummyImageFieldModel
-from test.generic.models import CustomFieldWithoutGeneratorModel, CustomFieldWithGeneratorModel
+from test.generic.models import (CustomFieldWithoutGeneratorModel,
+                                 ModelWithCustomField,
+                                 AnotherModelWithCustomField)
+from test.generic.fields import CustomFieldWithGenerator
 
 __all__ = [
     'StringFieldsFilling', 'BooleanFieldsFilling', 'DateTimeFieldsFilling',
@@ -268,16 +271,31 @@ class FillingImageFileField(TestCase):
 
 class FillingCustomFields(TestCase):
 
-    def setUp(self):
-        generator_dict = {'test.generic.fields.CustomFieldWithGenerator': lambda: "value"}
-        setattr(settings, 'MOMMY_CUSTOM_FIELDS_GEN', generator_dict)
-
     def tearDown(self):
-        delattr(settings, 'MOMMY_CUSTOM_FIELDS_GEN')
+        mommy.clear_value_generators()
 
     def test_raises_unsupported_field_for_custom_field(self):
         self.assertRaises(TypeError, mommy.make, CustomFieldWithoutGeneratorModel)
 
-    def test_uses_generator_defined_on_settings_for_custom_field(self):
-        obj = mommy.make(CustomFieldWithGeneratorModel)
+    def test_can_add_a_generator_for_a_field(self):
+        mommy.add_value_generator(lambda: "value",
+                                  CustomFieldWithGenerator)
+        obj = mommy.make(ModelWithCustomField)
         self.assertEqual("value", obj.custom_value)
+
+    def test_can_clear_custom_generators(self):
+        mommy.add_value_generator(lambda: "value",
+                                  CustomFieldWithGenerator)
+        mommy.clear_value_generators()
+        self.assertRaises(TypeError, mommy.make, ModelWithCustomField)
+
+    def test_can_add_a_generator_for_a_field_per_model(self):
+        mommy.add_value_generator(lambda: "default",
+                                  CustomFieldWithGenerator)
+        mommy.add_value_generator(lambda: "specific",
+                                  CustomFieldWithGenerator,
+                                  AnotherModelWithCustomField)
+        obj = mommy.make(ModelWithCustomField)
+        self.assertEqual("default", obj.custom_value)
+        obj = mommy.make(AnotherModelWithCustomField)
+        self.assertEqual("specific", obj.custom_value)

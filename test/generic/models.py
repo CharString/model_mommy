@@ -182,7 +182,11 @@ class NonAbstractPerson(Person):
     dummy_count = models.IntegerField()
 
 
-class CustomFieldWithGeneratorModel(models.Model):
+class ModelWithCustomField(models.Model):
+    custom_value = CustomFieldWithGenerator()
+
+
+class AnotherModelWithCustomField(models.Model):
     custom_value = CustomFieldWithGenerator()
 
 
