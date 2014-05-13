@@ -4,10 +4,10 @@ from os.path import abspath
 from tempfile import gettempdir
 
 from django.test import TestCase
+from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
-from django.db import models
 from django.db.models.fields import CharField, TextField, SlugField
-from django.db.models.fields import DateField, DateTimeField,TimeField, EmailField
+from django.db.models.fields import DateField, DateTimeField, TimeField, EmailField
 from django.db.models.fields import IntegerField, SmallIntegerField
 from django.db.models.fields import PositiveSmallIntegerField
 from django.db.models.fields import PositiveIntegerField
@@ -16,6 +16,7 @@ from django.db.models.fields import BooleanField, URLField
 from django.db.models import FileField, ImageField
 from django.core.files import File
 from django.core.files.images import ImageFile
+import warnings
 
 try:
     from django.db.models.fields import BigIntegerField
@@ -45,6 +46,7 @@ __all__ = [
     'FillingOthersNumericFields', 'FillingFromChoice', 'URLFieldsFilling',
     'FillingEmailField', 'FillingGenericForeignKeyField', 'FillingFileField',
     'FillingImageFileField', 'TimeFieldsFilling', 'FillingCustomFields',
+    'FillingCustomFieldsTheDeprecatedWay',
 ]
 
 
@@ -242,6 +244,7 @@ class FillingFileField(TestCase):
     def tearDown(self):
         self.dummy.file_field.delete()
 
+
 # skipUnless not available in Django 1.2
 # @skipUnless(has_pil, "PIL is required to test ImageField")
 class FillingImageFileField(TestCase):
@@ -257,7 +260,7 @@ class FillingImageFileField(TestCase):
             self.assertIsInstance(field, ImageField)
             import time
             path = "%s/%s/mock-img.jpeg" % (gettempdir(), time.strftime('%Y/%m/%d'))
-    
+
             from django import VERSION
             if VERSION[1] >= 4:
                 # These require the file to exist in earlier versions of Django
@@ -299,3 +302,24 @@ class FillingCustomFields(TestCase):
         self.assertEqual("default", obj.custom_value)
         obj = mommy.make(AnotherModelWithCustomField)
         self.assertEqual("specific", obj.custom_value)
+
+
+class FillingCustomFieldsTheDeprecatedWay(TestCase):
+
+    def setUp(self):
+        generator_dict = {
+            'test.generic.fields.CustomFieldWithGenerator': lambda: "old"}
+        setattr(settings, 'MOMMY_CUSTOM_FIELDS_GEN', generator_dict)
+
+    def tearDown(self):
+        delattr(settings, 'MOMMY_CUSTOM_FIELDS_GEN')
+
+    def test_raises_deprecation_warning_for_settings_generator(self):
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always', DeprecationWarning)
+            mommy.make(ModelWithCustomField)
+            self.assertEqual(1, len(w))
+
+    def test_uses_generator_defined_on_settings_for_custom_field(self):
+        obj = mommy.make(ModelWithCustomField)
+        self.assertEqual("old", obj.custom_value)
