@@ -303,6 +303,23 @@ class FillingCustomFields(TestCase):
         obj = mommy.make(AnotherModelWithCustomField)
         self.assertEqual("specific", obj.custom_value)
 
+    def test_can_add_a_generator_in_a_context(self):
+        with mommy.add_value_generator(lambda: "temp",
+                                       CustomFieldWithGenerator):
+            obj = mommy.make(ModelWithCustomField)
+            self.assertEqual("temp", obj.custom_value)
+        self.assertRaises(TypeError, mommy.make, ModelWithCustomField)
+
+    def test_original_generater_is_restored_after_context(self):
+        mommy.add_value_generator(lambda: "default",
+                                  CustomFieldWithGenerator)
+        with mommy.add_value_generator(lambda: "temp",
+                                       CustomFieldWithGenerator):
+            obj = mommy.make(ModelWithCustomField)
+            self.assertEqual("temp", obj.custom_value)
+        obj = mommy.make(ModelWithCustomField)
+        self.assertEqual("default", obj.custom_value)
+
 
 class FillingCustomFieldsTheDeprecatedWay(TestCase):
 

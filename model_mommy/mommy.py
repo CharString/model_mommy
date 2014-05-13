@@ -406,8 +406,21 @@ def filter_rel_attrs(field_name, **rel_attrs):
     return clean_dict
 
 
-def add_value_generator(generator, field, model=None):
-    custom_mapping[model][field] = generator
+class add_value_generator(object):
+
+    def __init__(self, generator, field, model=None):
+        self._model = model
+        self._field = field
+        self.original = custom_mapping[model].get(field, None)
+        custom_mapping[model][field] = generator
+
+    def __enter__(self):
+        return self.original
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        del custom_mapping[self._model][self._field]
+        if self.original:
+            custom_mapping[self._model][self._field] = self.original
 
 
 def clear_value_generators():

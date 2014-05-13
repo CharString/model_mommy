@@ -171,8 +171,7 @@ Custom fields
 
 Model-mommy allows you to specify your own value generators. You can use this to
 
- * provide support for your custom fields
- * override the default generators, on fields that require special validation
+* provide support for your own or 3rd party custom fields
 
 .. code-block:: python
 
@@ -180,6 +179,21 @@ Model-mommy allows you to specify your own value generators. You can use this to
         return 'value'
 
     mommy.add_value_generator(gen_func, CustomField)
+
+* override the custom generator on a specific model
+
+.. code-block:: python
+
+   mommy.add_value_generator(lambda: 'some other value', CustomField, MyModel)
+
+* temporarily override the custom generator specified in a context
+
+.. code-block:: python
+
+  with mommy.add_value_generator(lambda: 'temp', CustomField):
+      ... 'temp' will be assigned to CustomFields
+
+  ... whatever generator was used before the context is restored
 
 
 Recipes
